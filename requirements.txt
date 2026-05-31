@@ -1,0 +1,8 @@
+# Runtime dependencies for the PR Review Agent.
+# Install with:  pip install -r requirements.txt
+
+google-genai>=1.0      # Google Gemini API client (structured output)
+PyGithub>=2.1          # GitHub REST API client (PR metadata + diffs)
+rich>=13.0             # Formatted terminal output
+python-dotenv>=1.0     # Load GEMINI_API_KEY / GITHUB_TOKEN from .env
+pydantic>=2.0          # Validate the model's structured review output
