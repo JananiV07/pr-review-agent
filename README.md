@@ -105,29 +105,44 @@ FIX: Add RFC 7230 header validation to reject pseudo-headers (fix #6167)
 
 ## 🏗️ How It Works
 
-```
-        GitHub PR URL
-              │
-              ▼
-   ┌─────────────────────┐    PyGithub      ┌──────────────────────────┐
-   │  parse_pr_url()     │ ───────────────▶ │  title · body · diff      │
-   └─────────────────────┘                  └──────────────────────────┘
-                                                        │
-                                          JSON schema   ▼  (response_schema=Review)
-                                            ┌──────────────────────────┐
-                                            │   Google Gemini 2.5       │
-                                            └──────────────────────────┘
-                                                        │  validated Review
-                                                        ▼
-                                            ┌──────────────────────────┐
-                                            │   rich terminal render    │
-                                            └──────────────────────────┘
+```mermaid
+flowchart LR
+    A([GitHub PR URL]) --> B["parse_pr_url()"]
+    B --> C["fetch_pull_request()<br/>PyGithub"]
+    C --> D[/"title · body · diff"/]
+    D --> E["request_review()<br/>Gemini · JSON schema"]
+    E --> F["Review<br/>Pydantic-validated"]
+    F --> G["render_review()<br/>rich"]
+    G --> H([Terminal report])
 ```
 
 1. **Parse** the PR URL into `owner / repo / number`.
 2. **Fetch** the PR's title, body, and per-file diffs with **PyGithub**.
 3. **Review** — the assembled diff is sent to **Gemini**, constrained by a JSON response schema (the `Review` Pydantic model).
 4. **Render** the validated result with **rich**.
+
+### Runtime sequence
+
+```mermaid
+sequenceDiagram
+    actor User
+    participant CLI as agent.py
+    participant GH as GitHub · PyGithub
+    participant GM as Gemini API
+    participant Term as Terminal · rich
+
+    User->>CLI: python agent.py PR_URL
+    CLI->>CLI: parse_pr_url()
+    CLI->>GH: get_repo · get_pull · get_files()
+    GH-->>CLI: title, body, diff
+    CLI->>GM: generate_content(diff, schema=Review)
+    GM-->>CLI: structured JSON review
+    CLI->>CLI: validate -> Review
+    CLI->>Term: render_review()
+    Term-->>User: Summary · Issues · Suggestions · Verdict
+```
+
+> 📐 Full **control-flow** (with error paths and exit codes), **data-model**, and **module-map** diagrams live in **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)**.
 
 ---
 
